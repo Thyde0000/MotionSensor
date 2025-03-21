@@ -1,0 +1,6 @@
+CREATE TABLE IF NOT EXISTS motion_events (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    event_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    sensor_id VARCHAR(50) NOT NULL,
+    motion_detected TINYINT(1) NOT NULL
+);
