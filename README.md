@@ -1,6 +1,3 @@
-# MotionSensor
-
-
 # ESP8266 PIR Motion‑to‑Telegram Alarm
 
 A lightweight IoT security node that detects motion with a **PIR sensor**, connects to Wi‑Fi via an **ESP8266** (e.g., NodeMCU or Wemos D1 mini) and pushes instant alerts to a Telegram chat.
@@ -82,6 +79,8 @@ This project is released under the **MIT License** – see `LICENSE` for detail
 
 ---
 
-### Author
+### Authors
 Hooman Manesh  ·  2025 ©
-
+Jeffrey DeOcampo  ·  2025 ©
+Jaecob Adajar  ·  2025 ©
+Erasto Jr Damian Astudillo  ·  2025 ©
