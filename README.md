@@ -79,6 +79,9 @@ This project is released under the **MIT License** – see `LICENSE` for detail
 
 ---
 
-Authors
+### Authors
+Hooman Manesh  ·  2025 ©  
+Jeffrey DeOcampo  ·  2025 ©  
+Jaecob Adajar  ·  2025 ©  
+Erasto Jr Damian Astudillo  ·  2025 ©
 
-Hooman Manesh  ·  2025 ©Jeffrey DeOcampo  ·  2025 ©Jaecob Adajar  ·  2025 ©Erasto Jr Damian Astudillo  ·  2025 ©
