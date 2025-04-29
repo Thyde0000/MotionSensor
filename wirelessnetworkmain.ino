@@ -1,5 +1,5 @@
 #include <ESP8266WiFi.h>
-#include <WifiClientSecure.h>
+#include <WiFiClientSecure.h>
 #include "config.h"
 
 const int pirPin = 4; // GPIO4 (D2)
@@ -8,77 +8,75 @@ void setup() {
   Serial.begin(115200);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
-  Serial.print("Connecting to Wi-Fi");
+  Serial.println("Connecting to Wi-Fi...");
   while (WiFi.status() != WL_CONNECTED) {
     delay(1000);
     Serial.print(".");
   }
-  Serial.println();
-
-  Serial.print("Connected, IP address: ");
+  Serial.println("\nConnected to Wi-Fi.");
+  Serial.print("IP Address: ");
   Serial.println(WiFi.localIP());
+
   pinMode(pirPin, INPUT);
-
 }
 
-String urlencode(String str) {
-  String encoded = "";
-  char c;
-  for (int i = 0; i < str.length(); i++) {
-    c = str.charAt(i);
-    if (isalnum(c)) {
-      encoded += c;
-    } else {
-      encoded += '%';
-      char hex1 = (c >> 4) & 0xF;
-      char hex2 = c & 0xF;
-      encoded += "0123456789ABCDEF"[hex1];
-      encoded += "0123456789ABCDEF"[hex2];
-    }
-  }
-  return encoded;
-}
-
-void sendTelegramMessage(String message) {
+void sendMotionAlert(String message) {
   WiFiClientSecure client;
   client.setInsecure(); 
-  const char* host = "api.telegram.org";
+
+  Serial.println("Starting motion alert...");
+  Serial.print("Free heap before sending: ");
+  Serial.println(ESP.getFreeHeap());
+
+  const char* host = LAMBDA_ENDPOINT;
   const int httpsPort = 443;
+  String url = "/default/motionLog";
+
+  Serial.print("Connecting to host: ");
+  Serial.println(host);
 
   if (!client.connect(host, httpsPort)) {
-    Serial.println("Connection to Telegram failed.");
+    Serial.println("Failed to connect to Lambda API.");
     return;
   }
+  Serial.println("Connected to Lambda API.");
 
-  String url = "/bot" + String(TELEGRAM_BOT_TOKEN) +
-               "/sendMessage?chat_id=" + String(TELEGRAM_CHAT_ID) +
-               "&text=" + urlencode(message);
+  String payload = "{\"message\":\"" + message + "\"}";
 
-  Serial.print("Requesting URL: ");
-  Serial.println(url);
+  String request = String("POST ") + url + " HTTP/1.1\r\n" +
+                   "Host: " + host + "\r\n" +
+                   "Content-Type: application/json\r\n" +
+                   "Content-Length: " + payload.length() + "\r\n" +
+                   "Connection: close\r\n\r\n" +
+                   payload;
 
-  client.print(String("GET ") + url + " HTTP/1.1\r\n" +
-               "Host: " + host + "\r\n" +
-               "Connection: close\r\n\r\n");
+  Serial.println("Sending HTTP request:");
+  Serial.println(request);
+
+  client.print(request);
+
+  Serial.println("Waiting for server response...");
 
   while (client.connected()) {
     String line = client.readStringUntil('\n');
-    if (line == "\r") break;
     Serial.println(line);
+    if (line == "\r") {
+      Serial.println("End of headers.");
+      break;
+    }
   }
 
-  Serial.println("Message sent to Telegram.");
+  Serial.println("Done reading response.");
+  Serial.print("Free heap after sending: ");
+  Serial.println(ESP.getFreeHeap());
 }
-
 
 void loop() {
-  int motionDetected = digitalRead(pirPin);
-
-  if (motionDetected == HIGH) {
-    Serial.println("Motion detected!");
-    sendTelegramMessage("Motion detected in your security system!");
-    delay(10000); // Prevent multiple alerts in short intervals
+  if (digitalRead(pirPin) == HIGH) {
+    Serial.println("🚨 Motion detected from ESP8266!");
+    sendMotionAlert("Motion detected from ESP8266!");
+    delay(10000); 
+  } else {
+    delay(100);
   }
 }
-
-
