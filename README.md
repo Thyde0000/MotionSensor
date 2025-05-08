@@ -1,6 +1,6 @@
 # ESP8266 PIR Motion‑to‑Telegram Alarm
 
-A lightweight IoT security node that detects motion with a **PIR sensor**, connects to Wi‑Fi via an **ESP8266** (e.g., NodeMCU or Wemos D1 mini) and pushes instant alerts to a Telegram chat.
+A compact IoT security system that detects motion with a PIR sensor, connects via ESP8266, and triggers a Telegram alert while logging the event to an AWS RDS MySQL database using an AWS Lambda function.
 
 ---
 
@@ -27,42 +27,64 @@ PIR sensitivity & delay pots can be tuned with a screwdriver after deployment.
 
 ---
 
-## 🛠️ Firmware Overview
-```cpp
-#include <ESP8266WiFi.h>
-#include <WifiClientSecure.h>
-#include "config.h"
-// …
-```
-### Key Points
-1. **`config.h`** holds Wi‑Fi credentials and Telegram tokens – keep it out of version control.
-2. `sendTelegramMessage()` opens an HTTPS connection (`WiFiClientSecure`) to `api.telegram.org` and issues a simple GET request.
-3. After a motion trigger is detected (`digitalRead(pirPin) == HIGH`), a message is sent and the loop sleeps 10 s to suppress spam.
+## 🛠 Firmware Architecture
+
+### Arduino (.ino) Sketch
+
+- Connects ESP8266 to Wi-Fi
+- Monitors the PIR sensor (`digitalRead(pirPin)`)
+- If motion is detected, sends a **HTTPS POST** request to an **AWS Lambda endpoint** using `WiFiClientSecure`
+- Sleeps for 10 seconds to reduce duplicate triggers
+
+### AWS Lambda Function (`lambda_function.py`)
+
+- Parses incoming POST body
+- Sends a **Telegram message** using bot token and chat ID
+- Logs each event into an **RDS MySQL** table `motion_events`
+
+> Environment variables in Lambda store Telegram credentials and database connection info securely.
 
 ---
 
-## ⏩ Quick Start
-1. **Clone** this repo.
-2. Open `MotionToTelegram.ino` (or rename the snippet file) in **Arduino IDE** or **PlatformIO**.
-3. Copy `config.sample.h` → `config.h` and fill in:
-   ```c
-   #define WIFI_SSID "YourNetwork"
-   #define WIFI_PASSWORD "YourPassword"
-   #define TELEGRAM_BOT_TOKEN "123456:ABC…"
-   #define TELEGRAM_CHAT_ID "‑1001234567890"
-   ```
-4. Select target board **"NodeMCU 1.0 (ESP‑12E)"**, Flash frequency **80 MHz**, Upload speed **921600**.
-5. Click **Upload**. Open **Serial Monitor @ 115200 baud** to watch connection logs.
+## ⏩ Quick Start
 
-> **Tip – Creating a Telegram bot**: Chat with **@BotFather**, generate a token, then send `/start` to your bot from the destination account to obtain the chat ID (use @myidbot or inspect the JSON reply).
+### 1. Clone and Configure
+- Clone this repo.
+- Open `wirelessnetworkmain.ino` (or `MotionToTelegram.ino`) in **Arduino IDE** or **PlatformIO**.
+- Copy `config.sample.h` → `config.h` and edit:
+  ```cpp
+  #define WIFI_SSID "YourNetwork"
+  #define WIFI_PASSWORD "YourPassword"
+  #define LAMBDA_ENDPOINT "your-api-id.lambda-url.amazonaws.com"
+  ```
+
+### 2. Flash the ESP8266
+- Board: **NodeMCU 1.0 (ESP-12E)**
+- Flash frequency: **80 MHz**
+- Upload speed: **921600**
+- Serial baud rate: **115200**
+- Click **Upload**, then open **Serial Monitor** to verify connection logs.
+
+### 3. Setup AWS Lambda + RDS
+- Deploy `lambda_function.py` to an AWS Lambda function.
+- Set the following environment variables:
+  - `TELEGRAM_BOT_TOKEN`
+  - `TELEGRAM_CHAT_ID`
+  - `DB_HOST`
+  - `DB_USER`
+  - `DB_PASS`
+  - `DB_NAME`
+- Make sure:
+  - Lambda has internet access (e.g., public subnet or NAT gateway)
+  - RDS is accessible from the Lambda environment (via VPC or public endpoint)
+
+### ✅ Telegram Bot Setup Tip
+- Chat with **@BotFather** to generate a bot token.
+- Send `/start` to your bot from the destination Telegram account.
+- Use **@myidbot** or inspect Telegram API JSON response to find the `chat_id`.
 
 ---
 
-## 🌐 Securing the Connection
-- The sketch calls `client.setInsecure()` to skip TLS verification (easier, but MITM‑prone). For production, **store Telegram’s root CA** (`ISRG Root X1`) in flash and use `client.setTrustAnchors()`.
-- Rate‑limit or CAPTCHA the bot if published publicly.
-
----
 
 ## 🔄 Extending the Project
 | Idea | Hint |
@@ -73,6 +95,16 @@ PIR sensitivity & delay pots can be tuned with a screwdriver after deployment.
 | Web dashboard | Add ESP8266WebServer + captive portal for Wi‑Fi provisioning |
 
 ---
+
+## 🔐 Security Notes
+
+- Uses `client.setInsecure()` in ESP sketch (not safe for production). For enhanced security:
+  - Store **Telegram's ISRG Root X1** certificate on device
+  - Use `client.setTrustAnchors()`
+- Telegram and DB credentials are kept in Lambda environment variables
+
+---
+
 
 ## 📝 License
 This project is released under the **MIT License** – see `LICENSE` for details.
