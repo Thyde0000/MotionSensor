@@ -2,7 +2,7 @@
 
 A compact IoT security system that detects motion with a PIR sensor, connects via ESP8266, and triggers a Telegram alert while logging the event to an AWS RDS MySQL database using an AWS Lambda function.
 
----
+--- 
 
 ## 📦 Bill of Materials
 | Qty | Component | Notes |
@@ -99,8 +99,8 @@ PIR sensitivity & delay pots can be tuned with a screwdriver after deployment.
 ## 🔐 Security Notes
 
 - Uses `client.setInsecure()` in ESP sketch (not safe for production). For enhanced security:
-  - Store **Telegram's ISRG Root X1** certificate on device
-  - Use `client.setTrustAnchors()`
+- Store **Telegram's ISRG Root X1** certificate on device
+- Use `client.setTrustAnchors()`
 - Telegram and DB credentials are kept in Lambda environment variables
 
 ---
